@@ -1,0 +1,13 @@
+{% extends "content_block.html" %}
+
+{% block content %}
+    <form method="POST" enctype="multipart/form-data">
+        {{ form_template.hidden_tag() }}
+        {{ form_template.file.label }}
+        <br><br>
+        {{ form_template.file }}
+        <br><br>
+        {{ form_template.submit }}
+    </form>
+
+{% endblock %}
