@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, flash
 from forms import UploadForm
 import csv
 
@@ -20,7 +20,6 @@ def upload_file():
 
         first_line_dict, subsequent_line_dict = url_check(uploaded_file)  # Return the information for the header row
         # and its subsequent rows using tuple returns.
-
 
         result = check_grid(first_line_dict, subsequent_line_dict)
 
@@ -93,14 +92,12 @@ def check_grid(first_line_dict, subsequent_line_dict):
             if counts[i] > counts[i - 1]:
                 col_diff = counts[i] - counts[i - 1]
                 if col_diff > 1:
-                    print(f"Error at row {i + 1}! There is a column difference of {col_diff} extra columns.")
-                    return False
+                    return f"Error at row {i + 1}! There is a column difference of {col_diff} extra columns."
                 else:
-                    print(f"Error at row {i + 1}! There is a column difference of {col_diff} less columns.")
-                    return False
+                    return f"Error at row {i + 1}! There is a column difference of {col_diff} less columns."
 
-    print("Data grid is OK")
-    return True
+    return "Data grid is OK"
+
 
 
 if __name__ == "__main__":
