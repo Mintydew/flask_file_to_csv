@@ -18,20 +18,17 @@ def upload_file():
         if not uploaded_file:
             return "No files were uploaded"
 
-        first_line_dict, subsequent_line_dict = url_check(uploaded_file)  # Return the information for the header row
-        # and its subsequent rows using tuple returns.
+        # Return the information for the header row and its subsequent rows using tuple returns.
+        first_line_dict, subsequent_line_dict = url_check(uploaded_file)
 
-        result = check_grid(first_line_dict, subsequent_line_dict)
+        # Check that the grid is  valid, and return it's boolean result and its string result for later code.
+        string_return_result, grid_validation_result = check_grid(first_line_dict, subsequent_line_dict)
 
-        if not result:
+        if not grid_validation_result:
             return None
-
-        with open('output.csv', 'w', newline='') as csvfile:
-            fieldnames = first_line_dict.keys()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            for row in subsequent_line_dict:
-                writer.writerow(subsequent_line_dict[row])
+        else:
+            print(string_return_result)
+            save_to_csv(first_line_dict, subsequent_line_dict)
 
     return render_template("index.html", form_template=form)
 
@@ -45,29 +42,31 @@ def url_check(uploaded_file):
     split_url = uploaded_file.filename.split(".")
 
     if split_url[-1].lower() in ALLOWED_EXTENSIONS:
-        first_line = uploaded_file.readline().decode('utf-8').replace(" ", "")  # Remove all white spaces inbetween
+        first_line = uploaded_file.readline().decode('utf-8').split(" ")  # Remove all white spaces inbetween
         # each character in the heading
-        subsequent_line = uploaded_file.read().decode('utf-8').replace(" ", "").splitlines()  # Remove all white
+        subsequent_line = uploaded_file.read().decode('utf-8').splitlines()  # Remove all white
         # spaces inbetween each character in the heading
 
         first_key = 0
-        for char in first_line.strip():  # Removes hidden newline characters from being inputted into the
+        for value in first_line:  # Removes hidden newline characters from being inputted into the
             # dictionary keys
-            first_line_dict[char] = first_key
+            stripped_value = value.strip()
+            first_line_dict[stripped_value] = first_key
             first_key += 1
 
         line_number = 0
         for line in subsequent_line:
             line_dict = {}
             subsequent_key = 0
-            for char in line.strip():
-                line_dict[subsequent_key] = char
+            for list_item in line.strip().split():  # Remove white spaces between each String
+                line_dict[subsequent_key] = list_item
                 subsequent_key += 1
             subsequent_line_dict[line_number] = line_dict
             line_number += 1
 
-        for row in subsequent_line_dict:
-            print(subsequent_line_dict[row].values())
+        # Test to see that the code is correctly saving the subsequent list items.
+        # for row in subsequent_line_dict:
+        #     print(subsequent_line_dict[row].values())
 
     return first_line_dict, subsequent_line_dict  # Return both variables using tuple returns.
 
@@ -92,12 +91,37 @@ def check_grid(first_line_dict, subsequent_line_dict):
             if counts[i] > counts[i - 1]:
                 col_diff = counts[i] - counts[i - 1]
                 if col_diff > 1:
-                    return f"Error at row {i + 1}! There is a column difference of {col_diff} extra columns."
+                    return f"Error at row {i + 1}! There is a column difference of {col_diff} extra columns.", False
                 else:
-                    return f"Error at row {i + 1}! There is a column difference of {col_diff} less columns."
+                    return f"Error at row {i + 1}! There is a column difference of {col_diff} less columns.", False
 
-    return "Data grid is OK"
+    return "Data grid is OK", True
 
+
+def save_to_csv(first_line, subsequent_line):
+    temp = {}
+
+    dict_key_number = 0
+    for item in subsequent_line.items():
+        key = 0
+        new_dict = {}
+        for length in first_line:
+            new_dict[length] = subsequent_line[item[0]][key]
+            key += 1
+        temp[dict_key_number] = new_dict
+        dict_key_number += 1
+
+    try:
+        with open('output.csv', 'w', newline='') as csvfile:
+            fieldnames = first_line.keys()
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for key, value in temp.items():
+                writer.writerow(value)
+            print("Save successful!")
+            return
+    except Exception as e:
+        print(f"Error saving file! Error: {e}")
 
 
 if __name__ == "__main__":
