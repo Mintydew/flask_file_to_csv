@@ -1,11 +1,12 @@
-from flask import Flask, render_template, request, flash
+from flask import Flask, render_template, send_file
 from forms import UploadForm
+from io import BytesIO
 import csv
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super_secret_key'
-ALLOWED_EXTENSIONS = {'txt'}  # Include the extensions that are allowed to be processed by the code.
-# Currently only at txt
+# Include the extensions that are allowed to be processed by the code. Currently only at txt
+ALLOWED_EXTENSIONS = {'txt'}
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -27,7 +28,7 @@ def upload_file():
         if not grid_validation_result:
             return None
         else:
-            print(string_return_result)
+            # Prepare the data as a CSV using a BytesIO buffer, then send the file for download using Flask send_file.
             save_to_csv(first_line_dict, subsequent_line_dict)
 
     return render_template("index.html", form_template=form)
@@ -42,13 +43,14 @@ def url_check(uploaded_file):
     split_url = uploaded_file.filename.split(".")
 
     if split_url[-1].lower() in ALLOWED_EXTENSIONS:
-        first_line = uploaded_file.readline().decode('utf-8').split(" ")  # Remove all white spaces inbetween
-        # each character in the heading
-        subsequent_line = uploaded_file.read().decode('utf-8').splitlines()  # Remove all white
-        # spaces inbetween each character in the heading
+        # Remove all white spaces inbetween each character in the heading
+        first_line = uploaded_file.readline().decode('utf-8').split(" ")
+        # Remove all white spaces inbetween each character in the heading
+        subsequent_line = uploaded_file.read().decode('utf-8').splitlines()
 
         first_key = 0
-        for value in first_line:  # Removes hidden newline characters from being inputted into the
+        for value in first_line:
+            # Removes hidden newline characters from being inputted into the
             # dictionary keys
             stripped_value = value.strip()
             first_line_dict[stripped_value] = first_key
@@ -68,7 +70,8 @@ def url_check(uploaded_file):
         # for row in subsequent_line_dict:
         #     print(subsequent_line_dict[row].values())
 
-    return first_line_dict, subsequent_line_dict  # Return both variables using tuple returns.
+    # Return both variables using tuple returns.
+    return first_line_dict, subsequent_line_dict
 
 
 def check_grid(first_line_dict, subsequent_line_dict):
@@ -78,12 +81,14 @@ def check_grid(first_line_dict, subsequent_line_dict):
         value = list(subsequent_line_dict[row].values())
         line_list.append(value)
 
-    line_list.insert(0, first_line)  # Insert the header row at index 0 of the data grid as list form.
+    # Insert the header row at index 0 of the data grid as list form.
+    line_list.insert(0, first_line)
 
     counts = []
 
-    for i, row in enumerate(line_list):  # Iterate through the whole grid, giving them an index to allow for comparisons
-        # in the length of each row by counting the difference in the counts 2d array.
+    # Iterate through the whole grid, giving them an index to allow for comparisons
+    # in the length of each row by counting the difference in the counts 2d array.
+    for i, row in enumerate(line_list):
         highest_point = len(row)
         counts.append(highest_point)
 
@@ -111,17 +116,42 @@ def save_to_csv(first_line, subsequent_line):
         temp[dict_key_number] = new_dict
         dict_key_number += 1
 
-    try:
-        with open('output.csv', 'w', newline='') as csvfile:
-            fieldnames = first_line.keys()
+
+
+    # try:
+        # Create BytesIO buffer to maintain data in memory.
+        buffer = BytesIO()
+        # Get the keys of the first row dictionary from prior methods.
+        fieldnames = first_line.keys()
+
+        # Use the BytesIO buffer via the context manager to write the file to.
+        # try:
+        with buffer as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
+            # for key, value in temp.items():
+            #     encoded_value = value.encode('utf-8')
+            #     writer.writerow(encoded_value)
             for key, value in temp.items():
-                writer.writerow(value)
-            print("Save successful!")
-            return
-    except Exception as e:
-        print(f"Error saving file! Error: {e}")
+                # Encode the entire row as bytes and write it to the CSV file.
+                encoded_row = {k: v.encode('utf-8') for k, v in value.items()}
+                writer.writerow(encoded_row)
+        # except Exception as e:
+        #     print(f"ERRRORRRRR {e}")
+
+        # File buffer has been moved after writing our file. Therefore, we need to point the buffer back to the
+        # beginning to ensure that we send the whole file.
+        buffer.seek(0)
+
+        # send_file is a Flask function that sends a file as response to a client (e.g. user's browser)
+        return send_file(
+            buffer,
+            as_attachment=True, # For the user to download the file rather than on a browser window.
+            download_name="output.csv", # Name of the download.
+            mimetype="text/csv" # MIME type to indicate it will be a text as its primary type and csv as its secondary
+        )
+    # except Exception as e:
+    #     print(f"Error saving file! Error: {e}")
 
 
 if __name__ == "__main__":
