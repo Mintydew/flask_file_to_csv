@@ -1,7 +1,8 @@
-from flask import Flask, render_template, send_file
+from flask import Flask, render_template, Response, send_file
 from forms import UploadForm
-from io import BytesIO
 import csv
+import tempfile
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super_secret_key'
@@ -11,6 +12,8 @@ ALLOWED_EXTENSIONS = {'txt'}
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
+    error_message = ""
+
     form = UploadForm()
 
     if form.validate_on_submit():
@@ -26,12 +29,13 @@ def upload_file():
         string_return_result, grid_validation_result = check_grid(first_line_dict, subsequent_line_dict)
 
         if not grid_validation_result:
-            return None
+            error_message = string_return_result
         else:
             # Prepare the data as a CSV using a BytesIO buffer, then send the file for download using Flask send_file.
-            save_to_csv(first_line_dict, subsequent_line_dict)
+            buffered_csv_data = save_to_csv(first_line_dict, subsequent_line_dict)
+            return send_csv_as_file(buffered_csv_data, "output.csv")
 
-    return render_template("index.html", form_template=form)
+    return render_template("index.html", form_template=form, error=error_message)
 
 # def export_file():
 #     folder = request.files['folderInput']
@@ -116,42 +120,40 @@ def save_to_csv(first_line, subsequent_line):
         temp[dict_key_number] = new_dict
         dict_key_number += 1
 
-
-
-    # try:
-        # Create BytesIO buffer to maintain data in memory.
-        buffer = BytesIO()
+    try:
         # Get the keys of the first row dictionary from prior methods.
         fieldnames = first_line.keys()
-
-        # Use the BytesIO buffer via the context manager to write the file to.
-        # try:
-        with buffer as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        # Create a temporary file to create the CSV so that it can be processed later to send
+        with tempfile.NamedTemporaryFile(delete=False, mode='w', newline='') as temp_file:
+            writer = csv.DictWriter(temp_file, fieldnames=fieldnames)
             writer.writeheader()
-            # for key, value in temp.items():
-            #     encoded_value = value.encode('utf-8')
-            #     writer.writerow(encoded_value)
             for key, value in temp.items():
-                # Encode the entire row as bytes and write it to the CSV file.
-                encoded_row = {k: v.encode('utf-8') for k, v in value.items()}
-                writer.writerow(encoded_row)
-        # except Exception as e:
-        #     print(f"ERRRORRRRR {e}")
+                writer.writerow(value)
 
-        # File buffer has been moved after writing our file. Therefore, we need to point the buffer back to the
-        # beginning to ensure that we send the whole file.
-        buffer.seek(0)
+        #  Open the temporary file, by retrieving the filename in the temporary location.
+        #  Open in read binary mode to read raw binary data to send as a response on the client.
+        with open(temp_file.name, 'rb') as f:
+            encoded_data = f.read()
 
-        # send_file is a Flask function that sends a file as response to a client (e.g. user's browser)
-        return send_file(
-            buffer,
-            as_attachment=True, # For the user to download the file rather than on a browser window.
-            download_name="output.csv", # Name of the download.
-            mimetype="text/csv" # MIME type to indicate it will be a text as its primary type and csv as its secondary
-        )
-    # except Exception as e:
-    #     print(f"Error saving file! Error: {e}")
+        # Remove temp_file as it has already been saved into the encoded_data variable.
+        os.remove(temp_file.name)
+        return encoded_data
+
+    except Exception as e:
+        print(f"Error saving file! Error: {e}")
+
+
+def send_csv_as_file(csv_data, filename):
+    # Create response object to process the csv data and send as a response by the client.
+    response = Response(
+        csv_data,
+        mimetype="text/csv",  # MIME type to indicate it will be a text as its primary type and csv as its secondary
+    )
+
+    # Set up response header with content-disposition as attachment to provide a response as an attachment.
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+
+    return response
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 {% extends "content_block.html" %}
 
 {% block content %}
+<div style="text-align: center;">
+<!-- enctype multipart/form-data is to ensure that the encoding type is transmitted to the server. Used as we are uploading binary data -->
     <form method="POST" enctype="multipart/form-data">
         {{ form_template.hidden_tag() }}
         {{ form_template.file.label }}
@@ -9,7 +11,8 @@
         <br><br>
         {{ form_template.submit }}
     </form>
-    <p>hi</p>
     <p> {{ result }} </p>
+    <p> {{ error }}</p>
+</div>
 
 {% endblock %}
