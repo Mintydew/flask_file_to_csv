@@ -48,6 +48,7 @@ Additionally, the focus of this project was less to do with the front-end compon
    ![image](https://github.com/Mintydew/flask_file_to_csv/assets/12553525/10ffd3b6-a9fb-4377-8e77-aab275bf14cc)
 3) User submits the file and clicks "Submit"
 4) If valid, a downloadable csv file (name: output.csv) is sent straight back to the user after processing it's contents in the back-end.
+   
    ![image](https://github.com/Mintydew/flask_file_to_csv/assets/12553525/2fcf7cb7-1781-4532-9512-d1587d030e12)
 
 ## Challenges
@@ -55,7 +56,8 @@ Additionally, the focus of this project was less to do with the front-end compon
 The focus of this project was about diving deep into the back-end capabilities of Flask and processing the files. As such, there were a lot of hurdles along the way which encouraged some fantastic learning opportunities such as:
 
 - Creating a Flask Response as the return. This was a major struggle initially as I was not aware on how to send a downloadable file back to the client.
-- Up until so far, I only knew how to create a CSV file through writing straight into the system (e.g. my project folder). The challenge was to find a way to get around this by creating a temporary file and preparing it to send back as a response to the client. 
+- Up until so far, I only knew how to create a CSV file through writing straight into the system (e.g. my project folder). The challenge was to find a way to get around this by creating a temporary file and preparing it to send back as a response to the client.
+  
 ![image](https://github.com/Mintydew/flask_file_to_csv/assets/12553525/79698f9e-27c4-4aa6-ad10-969010a5f80a)
 - Validation of the file was fairly tricky. As I worked more on the program, I tested the program and found ways to break its functionality by adding in complexity to the uploaded text file. For example, instead of having a single line of space inbetween each content in the text file, what if there were two spaces?
 
