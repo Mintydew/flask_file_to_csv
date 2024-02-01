@@ -31,7 +31,7 @@ Additionally, the focus of this project was less to do with the front-end compon
 - To process the file and convert to CSV in the program.
 - Send over the file back to the client for download.
 - Focus on back-end functionality such as data validation and transformation of the user data.
-- To learn new tools such as new libraries anid further functionalities with Flask.
+- To learn new tools such as new libraries and further functionalities with Flask.
  
 ## Technologies-Used
 
